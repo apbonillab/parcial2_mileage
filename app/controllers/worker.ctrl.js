@@ -3,32 +3,24 @@ var express = require('express')
 var router = express.Router();
 var randomService = require('../services/random.srv.js');
 var http = require('http');
-var cron = require('node-cron');
-var sqs = require('../../worker-sqs/sqs.js')
 
+  
+router.post('/test', (req,res) => {
 
-
-
-const execute = () => {
-    sqs.getSqs(function(apps){
-        console.log("Ejecucion RANDOM test");
-    });
+  let data={
+    'path_project': "/Users/adrianabonilla/Documents/andes/pruebas/semana8/Android_worker"
   }
-  
-var task = cron.schedule('* * * * *', execute, {scheduled:true});
-router.get('/start', (req,res) => {
-    execute();
-    task.start();
-    res.send('Cron iniciado')
-    
-  })
+  randomService.generatetest(data, function(apps){
+      res.statusCode = 200;
+      res.send({ status: "OK" });
+  },function(err){
+      res.statusCode = 404;
+      res.send(err);
+      
+})
 
 
-  
-router.get('/stop', (req,res) => {
-    task.stop()
-    res.send('Worker detenido')
-  })
-
+return res;
+})
 
 module.exports = router;

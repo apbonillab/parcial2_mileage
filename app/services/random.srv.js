@@ -1,40 +1,49 @@
 'use strict'
 const shell = require('shelljs');
 const fs = require('fs');
-const s3 = require('../../worker-sqs/s3Storage.js')
+var resemblejsCompare = require('resemblejs').compare;
 
-module.exports.generateRandom = function(req,success,error){
-    var appPackage;
-    var apkInstall;
-    console.log("..."+JSON.stringify(req));
-    switch(req.aplication){
-        case 'HABITICA_WEB':
-            appPackage = 'com.habitrpg.android.habitica';
-            apkInstall = 'habitica.apk';
-            break;
-        case 'CALENDULA':
-                appPackage = 'es.usc.citius.servando.calendula';
-                apkInstall = 'calendula.apk';
-                break;
-        default:
-            throw error({ status: "APP_NOT_FOUND" });
-    }
-    if(!req.code)
-        throw error( {status: "CODE_IS_NULL" }); 
-    const eventsNumber = req.numberExecution ? req.numberExecution : 10;
-    shell.exec(`adb install ${req.path_project}/vendor/${apkInstall}`)
-    shell.exec(`adb shell monkey -p ${appPackage} -v ${eventsNumber}`, function(code, stdout, stderr) {
-        s3.saveFileToS3(req.code,stdout,()=>{
-            console.log('Archivo creado en S3 Codigo: ',req.code);
-            success('Archivo creado en S3 Codigo: ',req.code);
-        });
+module.exports.generatetest = function(req,success,error){
+    console.log(req.path_project)
+    shell.cd(`${req.path_project}/miliage`);
+    shell.exec(`calabash-android gen`);
+    shell.exec(`calabash-android resign com.evancharlton.mileage.apk`)
+    shell.exec(`calabash-android run com.evancharlton.mileage.apk`, function(code, stdout, stderr) {
+        console.log('Ok calabash');
+
+        var timestamp = (new Date()).getTime();
+        var execution = {
+            insertionDate: new Date(),
+            timestamp: timestamp,
+            beforeImgUri: `${path_project}/original1.png`,
+            afterImgUri: `${path_project}/mutante1.png`
+        };
+
+        const options = {
+            returnEarlyThreshold: 5
+        };
 
 
-       /* fs.writeFile(`${req.path_project}/reports/random/${req.code}_${req.aplication}.txt`, stdout, function (err) {
-            if (err) throw err;
-            console.log('File is created successfully.');
-            success(`${req.path_project}/reports/${req.code}${req.aplication}.txt`);
-          });*/ 
+        return new Promise((resolve, reject) => {
+            const options = {};
+            console.log(execution.beforeImgUri);
+            resemblejsCompare(execution.beforeImgUri, execution.afterImgUri, options, function (err, data) {
+                if (err) reject(err);   
+                else        {
+                    console.log(data);
+                }                     
+                fs.writeFile(`${path_project}/comparation.png`, data.getBuffer(), (err) => {                
+                    if (err) reject(err);
+                    execution.comparation = data;
+                    execution.comparationImgUri = `${path_project}/comparation.png`;
+                    console.log('report '+JSON.stringify(execution))
+                    success(execution);
+                });
+            });
+        
+    });
+
       });
+ 
     
 }
